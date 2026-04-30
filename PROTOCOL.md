@@ -1,98 +1,70 @@
 # 底盘通信协议
 
-本文档描述底盘驱动所使用的通信协议格式。
+本文档描述当前底盘驱动所依赖的通信接口与运动学约定。
 
----
+## 当前支持驱动
 
-## UART 差速底盘协议 (uart_diff)
+小核底盘控制
 
-### 概述
+### RPMSG 驱动接口 (drv_rpmsg_esos)
 
-- **波特率**: 115200 (可配置)
-- **数据格式**: 8N1
-- **帧格式**: ASCII 文本，以 `\n` 结尾
+- 控制设备节点：`/dev/rpmsg_ctrl0`
+- 数据端点节点：`/dev/rpmsg0`
+- 适用场景：Linux 侧与 ESOS 小核之间的底盘控制通信
 
----
+### 配置说明
 
-### 发送指令 (上位机 → 底盘)
+使用 `struct chassis_rpmsg_config` 进行初始化，典型字段如下：
 
-**格式**:
-```
-{dir_l},{speed_l};{dir_r},{speed_r}\n
-```
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `dir_l` | int | 左轮方向: 0=停止, 1=正转, 2=反转 |
-| `speed_l` | float | 左轮速度 (转/秒, rev/s) |
-| `dir_r` | int | 右轮方向: 0=停止, 1=正转, 2=反转 |
-| `speed_r` | float | 右轮速度 (转/秒, rev/s) |
-
-**示例**:
-```
-1,0.50;1,0.50\n     # 双轮同速前进 0.5 rev/s
-1,0.30;2,0.30\n     # 原地左转
-0,0.00;0,0.00\n     # 停止
+```c
+struct chassis_rpmsg_config config = {
+    .base = {
+        .type = CHASSIS_TYPE_DIFF_2WD,
+        .wheel_diameter = 0.067f,
+        .wheel_base = 0.33f,
+        .wheel_track = 0.0f,
+        .max_speed = 1.0f,
+        .max_angular = 3.14f,
+    },
+    .ctrl_dev = "/dev/rpmsg_ctrl0",
+    .ept_dev = "/dev/rpmsg0",
+};
 ```
 
----
+> `drv_rpmsg_esos` 的具体消息定义和端点交互细节由 ESOS 固件侧协议决定；本目录主要约定 Linux 侧设备节点、初始化方式以及运动学换算。
 
-### 接收反馈 (底盘 → 上位机)
+## 速度单位转换
 
-**格式**:
-```
-...;{left_field};{right_field}\n
-```
+### 轮速 → 线速度
 
-解析最后两个分号分隔的字段，每个字段格式为：
-```
-...,{speed},{dir},...
-```
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `speed` | float | 轮速 (转/秒, rev/s) |
-| `dir` | int | 方向: 0=停止, 1=正转, 2=反转 |
-
-**解析规则**:
-- 以 `;` 分隔，取最后两个字段
-- 每个字段以 `,` 分隔，取倒数第 3 项为速度，倒数第 2 项为方向
-
----
-
-### 速度单位转换
-
-#### 轮速 → 线速度
-
-```
+```text
 线速度 (m/s) = 轮速 (rev/s) × π × 轮径 (m)
 ```
 
 **示例** (轮径 67mm):
-```
+
+```text
 v = 0.5 rev/s × π × 0.067 m ≈ 0.105 m/s
 ```
 
-#### 线速度 → 轮速
+### 线速度 → 轮速
 
-```
+```text
 轮速 (rev/s) = 线速度 (m/s) / (π × 轮径)
 ```
 
----
+## 差速运动学
 
-### 差速运动学
+### 左右轮速计算
 
-#### 左右轮速计算
-
-```
+```text
 v_left  = vx - wz × wheel_base / 2
 v_right = vx + wz × wheel_base / 2
 ```
 
-#### 里程计计算
+### 里程计计算
 
-```
+```text
 v  = (v_right + v_left) / 2      # 线速度
 w  = (v_right - v_left) / wheel_base  # 角速度
 
@@ -102,12 +74,12 @@ x   += v × cos(yaw) × dt
 y   += v × sin(yaw) × dt
 ```
 
----
-
 ## 待扩展协议
 
-| 驱动 | 底盘类型 | 状态 |
-|------|----------|------|
-| uart_mecanum | 四轮麦克纳姆 | TODO |
-| uart_omni | 全向轮 | TODO |
-| can_diff | CAN 差速 | TODO |
+后续如恢复或新增驱动，可在本文档中补充对应协议定义，例如：
+
+|驱动|底盘类型|状态|
+|---|---|---|
+|rpmsg_mecanum|四轮麦克纳姆|TODO|
+|rpmsg_omni|全向轮|TODO|
+|can_diff|CAN 差速|TODO|

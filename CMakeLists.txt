@@ -21,7 +21,7 @@ set(CHASSIS_CORE_SOURCES
 
 # Driver source files
 set(CHASSIS_DRIVER_SOURCES "")
-set(_default_drivers "drv_uart_esp32;drv_rpmsg_esos")
+set(_default_drivers "drv_rpmsg_esos")
 
 # Use SROBOTIS_CONTROL_BASE_ENABLED_DRIVERS if defined, otherwise use defaults
 if(DEFINED SROBOTIS_CONTROL_BASE_ENABLED_DRIVERS)
@@ -35,7 +35,7 @@ foreach(_drv IN LISTS _drivers)
         list(APPEND CHASSIS_DRIVER_SOURCES "src/drivers/${_drv}.c")
         message(STATUS "[chassis] Including driver: ${_drv}")
     else()
-        message(FATAL_ERROR "[chassis] Driver '${_drv}' not found at src/drivers/${_drv}.c")
+        message(FATAL_ERROR "[chassis] Driver '${_drv}' not found. Please check SROBOTIS_CONTROL_BASE_ENABLED_DRIVERS or src/drivers/")
     endif()
 endforeach()
 
