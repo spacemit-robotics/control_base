@@ -1,0 +1,54 @@
+## Copyright (C) 2026 SpacemiT (Hangzhou) Technology Co. Ltd.
+## SPDX-License-Identifier: Apache-2.0
+
+module: components/control/base
+
+tests:
+  - name: chassis-api-contract
+    description: >-
+      Builds chassis core with a fake driver and verifies driver allocation,
+      velocity command forwarding, odometry reads, tick integration, brake,
+      relax and running-device cleanup without requiring hardware.
+    category: functional
+    scopes: [pr]
+    timeout_s: 900
+    workdir: sdk
+    artifacts:
+      - output/test/pr/components__control__base/modules/components__control__base/logs/chassis_api_contract.log
+    command: |
+      bash components/control/base/tests/test_api_contract.sh
+
+  - name: chassis-error-paths
+    description: >-
+      Builds chassis core with fake drivers and verifies NULL arguments,
+      unknown drivers, invalid chassis geometry, missing operation hooks and
+      driver error propagation return explicit errors instead of succeeding.
+    category: functional
+    scopes: [pr]
+    timeout_s: 900
+    workdir: sdk
+    artifacts:
+      - output/test/pr/components__control__base/modules/components__control__base/logs/chassis_error_paths.log
+    command: |
+      bash components/control/base/tests/test_error_paths.sh
+
+  - name: chassis-rpmsg-hardware-smoke
+    description: >-
+      Manually verifies the RPMsg ESOS chassis binary can initialize real RPMsg
+      devices, send safe velocity commands and report odometry on the selected
+      endpoints under operator supervision.
+    category: functional
+    scopes: [manual]
+    timeout_s: 1200
+    workdir: sdk
+    requires:
+      hardware:
+        - >-
+          ESOS differential chassis with RPMsg control/data endpoints available;
+          export CHASSIS_RPMSG_CTRL_DEV, CHASSIS_RPMSG_DATA_DEV and optional
+          CHASSIS_RPMSG_SERVICE_NAME before running when defaults are not valid.
+      supervision: true
+    artifacts:
+      - output/test/manual/components__control__base/modules/components__control__base/logs/chassis_rpmsg_hardware_smoke.log
+    command: |
+      bash components/control/base/tests/test_hw_rpmsg_smoke.sh
