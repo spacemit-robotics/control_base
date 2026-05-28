@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
         .base = {
             .type = CHASSIS_TYPE_DIFF_2WD,
             .wheel_diameter = 0.067f,  /* 67mm */
-            .wheel_base = 0.33f,       /* 330mm */
+            .wheel_base = 0.183f,      /* 183mm */
             .wheel_track = 0.0f,       /* not used for 2WD */
             .max_speed = 1.0f,
             .max_angular = 3.14f,
