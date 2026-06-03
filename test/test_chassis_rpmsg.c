@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
         .pid_ki = 0.2f,
         .pid_kd = 0.01f,
         .cfg_send_on_startup = true,
-        .feedback_enable = false,
+        .feedback_enable = true,
     };
 
     chassis = chassis_alloc("drv_rpmsg_esos", &config);

@@ -266,8 +266,14 @@ static void parse_feedback(struct chassis_dev *dev, const char *buf) {
 
     int dir1 = 0, dir2 = 0;
     int speed1_mrs = 0, speed2_mrs = 0;
+    int duty1_pm = 0, duty2_pm = 0;
 
-    if (sscanf(buf, "%d,%d;%d,%d", &dir1, &speed1_mrs, &dir2, &speed2_mrs) == 4) {
+    /* Feedback format: "dir,speed_mrs,duty_pm;dir,speed_mrs,duty_pm"
+     * duty_pm (PWM duty, per-mille 0~1000) is ignored by the chassis driver. */
+    if (sscanf(buf, "%d,%d,%d;%d,%d,%d", &dir1, &speed1_mrs, &duty1_pm,
+            &dir2, &speed2_mrs, &duty2_pm) == 6) {
+        (void)duty1_pm;
+        (void)duty2_pm;
         /* Convert milli-revolutions/s -> m/s */
         float rps1 = speed1_mrs / 1000.0f;
         float rps2 = speed2_mrs / 1000.0f;
