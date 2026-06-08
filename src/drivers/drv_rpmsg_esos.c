@@ -161,6 +161,10 @@ static int rpmsg_init(struct chassis_dev *dev) {
 
 static void rpmsg_cleanup(struct rpmsg_esos_priv *priv) {
     if (priv->rpmsg_fd >= 0) {
+        if (ioctl(priv->rpmsg_fd, RPMSG_DESTROY_EPT_IOCTL) < 0) {
+            printf("[CHASSIS-RPMSG-ESOS] Failed to destroy endpoint: %s\n",
+                    strerror(errno));
+        }
         close(priv->rpmsg_fd);
         priv->rpmsg_fd = -1;
     }
