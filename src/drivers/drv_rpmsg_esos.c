@@ -56,6 +56,8 @@ struct rpmsg_endpoint_info {
 #define DEFAULT_RPMSG_SERVICE_NAME "rpmsg:motor_ctrl"
 #define DEFAULT_RPMSG_LOCAL_ADDR 1003
 #define DEFAULT_RPMSG_REMOTE_ADDR 1002
+#define RPMSG_DATA_OPEN_RETRY_COUNT 50
+#define RPMSG_DATA_OPEN_RETRY_DELAY_US 20000
 
 /* ==========================================================================
  * Private Data Structure
@@ -109,6 +111,30 @@ static void velocity_to_cmd(float v, float wheel_diam, int *out_dir,
     *out_speed = fabsf(v) / (M_PI * wheel_diam);
 }
 
+static int open_rpmsg_data_dev(const char *data_dev) {
+    int fd;
+    int last_errno = 0;
+
+    for (int i = 0; i < RPMSG_DATA_OPEN_RETRY_COUNT; i++) {
+        fd = open(data_dev, O_RDWR);
+        if (fd >= 0)
+            return fd;
+
+        last_errno = errno;
+
+        /* After RPMSG_CREATE_EPT_IOCTL, udev may need a short time to create
+         * the node and apply permissions. Retry only for transient states. */
+        if (last_errno != ENOENT && last_errno != EACCES &&
+                last_errno != EPERM)
+            break;
+
+        usleep(RPMSG_DATA_OPEN_RETRY_DELAY_US);
+    }
+
+    errno = last_errno;
+    return -1;
+}
+
 /* Forward declaration */
 static int rpmsg_esos_set_velocity(struct chassis_dev *dev,
         const chassis_velocity_t *vel);
@@ -146,7 +172,7 @@ static int rpmsg_init(struct chassis_dev *dev) {
         return -1;
     }
 
-    priv->rpmsg_fd = open(priv->data_dev, O_RDWR);
+    priv->rpmsg_fd = open_rpmsg_data_dev(priv->data_dev);
     if (priv->rpmsg_fd < 0) {
         printf("[CHASSIS-RPMSG-ESOS] Failed to open %s: %s\n",
                 priv->data_dev, strerror(errno));
